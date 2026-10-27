@@ -1,0 +1,15 @@
+{
+  "name": "Ninho — Casa & Finanças",
+  "short_name": "Ninho",
+  "description": "Casa, finanças e rotina compartilhada",
+  "start_url": "./",
+  "scope": "./",
+  "display": "standalone",
+  "orientation": "portrait",
+  "background_color": "#f2dfc8",
+  "theme_color": "#4b2d1e",
+  "icons": [
+    { "src": "icon-192.png", "sizes": "192x192", "type": "image/png", "purpose": "any maskable" },
+    { "src": "icon-512.png", "sizes": "512x512", "type": "image/png", "purpose": "any maskable" }
+  ]
+}
