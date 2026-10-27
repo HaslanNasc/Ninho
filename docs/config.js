@@ -7,6 +7,6 @@
 // ============================================================
 window.NINHO_CONFIG = {
   SUPABASE_URL: "https://idxbhctcldgnpvkrwrbc.supabase.co/rest/v1/",        // ex: https://xxxxxxxx.supabase.co
-  SUPABASE_ANON_KEY: "https://idxbhctcldgnpvkrwrbc.supabase.co/rest/v1/",   // chave "anon public" (pode ficar no frontend)
+  SUPABASE_ANON_KEY: "sb_publishable_iE_f9hrv4O3x0sRWeR6CCw_bQnPMefR",   // chave "anon public" (pode ficar no frontend)
   APP_VERSION: "1.0.0"
 };
