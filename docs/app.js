@@ -16,7 +16,24 @@ const daysTo = d => d? Math.ceil((new Date(d+'T00:00:00')-new Date(today()+'T00:
 
 let PROFILE=null, HOUSE=null, MEMBERS={}, UID=null;
 const memberName = id => (MEMBERS[id]&&MEMBERS[id].display_name)||'—';
-function avatarHtml(id){ const m=MEMBERS[id]||{}; if(m.avatar_url) return `<span class="avatar"><img src="${esc(m.avatar_url)}"></span>`;
+// ---------- mascotes (cachorro, gato, capivara) em SVG ----------
+const MASCOTS = {
+  cachorro:`<svg viewBox="0 0 64 64" width="100%" height="100%" xmlns="http://www.w3.org/2000/svg"><circle cx="32" cy="32" r="32" fill="#ffe9c7"/><ellipse cx="16" cy="26" rx="7" ry="12" fill="#c8862f"/><ellipse cx="48" cy="26" rx="7" ry="12" fill="#c8862f"/><circle cx="32" cy="32" r="18" fill="#f0b45e"/><ellipse cx="32" cy="40" rx="12" ry="10" fill="#fbdca7"/><circle cx="25" cy="30" r="2.6" fill="#3a2a16"/><circle cx="39" cy="30" r="2.6" fill="#3a2a16"/><ellipse cx="32" cy="38" rx="3.4" ry="2.6" fill="#3a2a16"/><path d="M30 44 q2 4 4 0 z" fill="#ef6f8e"/></svg>`,
+  gato:`<svg viewBox="0 0 64 64" width="100%" height="100%" xmlns="http://www.w3.org/2000/svg"><circle cx="32" cy="32" r="32" fill="#e9e3ff"/><path d="M16 16 L22 30 L10 30 Z" fill="#333"/><path d="M48 16 L54 30 L42 30 Z" fill="#333"/><circle cx="32" cy="34" r="18" fill="#333"/><ellipse cx="32" cy="42" rx="12" ry="9" fill="#fff"/><circle cx="25" cy="32" r="3" fill="#7bd389"/><circle cx="39" cy="32" r="3" fill="#7bd389"/><circle cx="25" cy="32" r="1.3" fill="#1b1b1b"/><circle cx="39" cy="32" r="1.3" fill="#1b1b1b"/><ellipse cx="32" cy="39" rx="2" ry="1.4" fill="#ef6f8e"/><path d="M22 40 h-7 M22 43 h-6" stroke="#999" stroke-width="1" stroke-linecap="round"/><path d="M42 40 h7 M42 43 h6" stroke="#999" stroke-width="1" stroke-linecap="round"/></svg>`,
+  capivara:`<svg viewBox="0 0 64 64" width="100%" height="100%" xmlns="http://www.w3.org/2000/svg"><circle cx="32" cy="32" r="32" fill="#e9dcc7"/><ellipse cx="20" cy="18" rx="4" ry="3.5" fill="#7d5f3c"/><ellipse cx="44" cy="18" rx="4" ry="3.5" fill="#7d5f3c"/><ellipse cx="32" cy="36" rx="19" ry="17" fill="#9c7a52"/><ellipse cx="32" cy="46" rx="13" ry="9" fill="#b99a6f"/><circle cx="24" cy="31" r="7" fill="none" stroke="#3a2a16" stroke-width="1.6"/><circle cx="40" cy="31" r="7" fill="none" stroke="#3a2a16" stroke-width="1.6"/><line x1="31" y1="31" x2="33" y2="31" stroke="#3a2a16" stroke-width="1.6"/><circle cx="24" cy="31" r="2.2" fill="#3a2a16"/><circle cx="40" cy="31" r="2.2" fill="#3a2a16"/><ellipse cx="32" cy="45" rx="5" ry="3.4" fill="#6b4f30"/><ellipse cx="29.5" cy="44.5" rx="1" ry="1.4" fill="#2a1d0f"/><ellipse cx="34.5" cy="44.5" rx="1" ry="1.4" fill="#2a1d0f"/></svg>`
+};
+const mascotBox = (key,cls) => `<span class="mascot ${cls||''}">${MASCOTS[key]||MASCOTS.capivara}</span>`;
+
+// ---------- tema de cores escolhido pela usuária ----------
+const THEME_KEY='ninho_theme';
+const THEMES={roxo:'Roxo',rosa:'Rosa',azul:'Azul',cinza:'Cinza'};
+function applyTheme(t){ t=THEMES[t]?t:'roxo'; document.documentElement.setAttribute('data-theme',t); try{localStorage.setItem(THEME_KEY,t);}catch(e){} }
+function currentTheme(){ try{ return localStorage.getItem(THEME_KEY)||'roxo'; }catch(e){ return 'roxo'; } }
+applyTheme(currentTheme());
+
+function avatarHtml(id){ const m=MEMBERS[id]||{};
+  if(m.avatar_url && m.avatar_url.indexOf('mascot:')===0){ return `<span class="avatar">${MASCOTS[m.avatar_url.slice(7)]||MASCOTS.capivara}</span>`; }
+  if(m.avatar_url) return `<span class="avatar"><img src="${esc(m.avatar_url)}"></span>`;
   const ini=(m.display_name||'?').trim().charAt(0).toUpperCase(); return `<span class="avatar">${esc(ini)}</span>`; }
 
 // ---------- banner / toast ----------
@@ -76,7 +93,7 @@ function renderAuth(mode){
   mode = mode||'in';
   const demo = !DB.hasSupabase;
   app.innerHTML = `<div class="auth-wrap"><div class="auth-card">
-    <div class="auth-mascots">\ud83d\udc31 \ud83d\udc36 \ud83d\udc15</div>
+    <div class="auth-mascots">${mascotBox('cachorro')}${mascotBox('gato')}${mascotBox('capivara')}</div>
     <h1>Ninho</h1><p class="sub">Casa, finan\u00e7as e rotina \u2014 juntas.</p>
     ${demo?`<div class="banner warn">Modo demonstra\u00e7\u00e3o: os dados ficam s\u00f3 neste navegador. Para login real e sincroniza\u00e7\u00e3o entre celulares, configure o Supabase em <b>config.js</b>.</div>`:''}
     <div id="autherr"></div>
@@ -192,7 +209,8 @@ SCREENS.dashboard = async m => {
   const lowInv = inv.filter(i=>i.status==='baixo'||i.status==='acabou');
   const nextEv = evs.filter(e=>e.status!=='concluida'&&e.date).sort((a,b)=>a.date.localeCompare(b.date)).slice(0,4);
   // pizza por conta (saldo positivo)
-  const palette=['#6b422c','#c99a70','#6d8d62','#a94f45','#c98a3a','#8a6b55','#e4c5a5'];
+  const _pc=(getComputedStyle(document.documentElement).getPropertyValue('--primary')||'#7c3aed').trim();
+  const palette=[_pc,'#ec4899','#3b82f6','#10b981','#f59e0b','#8b5cf6','#14b8a6','#ef4444'];
   const posAcc = mine.filter(a=>!a.is_credit&&Number(a.balance_cents)>0);
   const totPos = posAcc.reduce((s,a)=>s+Number(a.balance_cents),0)||1;
   let acc=0; const seg = posAcc.map((a,i)=>{const frac=Number(a.balance_cents)/totPos; const from=acc*360; acc+=frac; return `${palette[i%palette.length]} ${from}deg ${acc*360}deg`;}).join(',');
@@ -201,7 +219,7 @@ SCREENS.dashboard = async m => {
     : `<p class="subtitle">Cadastre contas com saldo para ver a distribui\u00e7\u00e3o.</p>`;
 
   m.innerHTML = head('Dashboard','Um resumo da sua vida financeira e da casa.') +
-  `<div class="hero"><div><h2>Oi, ${esc(PROFILE.display_name)}! \ud83d\udc4b</h2><p>Aqui est\u00e1 o resumo do seu Ninho hoje.</p></div><div class="pets">\ud83d\udc31\ud83d\udc36\ud83d\udc15</div></div>
+  `<div class="hero"><div><h2>Oi, ${esc(PROFILE.display_name)}! \ud83d\udc4b</h2><p>Aqui est\u00e1 o resumo do seu Ninho hoje.</p></div><div class="pets">${mascotBox('cachorro','sm')}${mascotBox('gato','sm')}${mascotBox('capivara','sm')}</div></div>
   <div class="stats">
     <div class="stat"><div class="k">Saldo pessoal</div><div class="v">${cents(saldo)}</div><div class="d">${mine.length} conta(s)</div></div>
     <div class="stat"><div class="k">D\u00edvidas a pagar</div><div class="v neg">${cents(devRest)}</div><div class="d">${pend.length} pendente(s)</div></div>
@@ -584,7 +602,7 @@ SCREENS.pets = async m => {
   if(!PET_SEL){
     m.innerHTML=head('Pets','Cuidados, rem\u00e9dios, higiene e compras dos bichinhos.',
       `<button class="btn primary" id="add">+ Novo pet</button>`)+
-      (pets.length?`<div class="grid3">`+pets.map(p=>`<div class="panel" style="text-align:center"><div style="font-size:46px">${p.photo_url?`<img src="${esc(p.photo_url)}" style="width:72px;height:72px;border-radius:50%;object-fit:cover">`:(p.species||'').includes('gat')?'\ud83d\udc31':'\ud83d\udc36'}</div>
+      (pets.length?`<div class="grid3">`+pets.map(p=>`<div class="panel" style="text-align:center"><div style="font-size:46px">${p.photo_url?`<img src="${esc(p.photo_url)}" style="width:72px;height:72px;border-radius:50%;object-fit:cover">`:(p.species||'').includes('gat')?mascotBox('gato'):(p.species||'').includes('capi')?mascotBox('capivara'):mascotBox('cachorro')}</div>
         <h3 style="justify-content:center">${esc(p.name)}</h3><div class="mt">${esc(p.info||p.species||'')}</div>
         <button class="btn small primary" data-open="${p.id}" style="margin-top:8px">Abrir ficha</button></div>`).join('')+`</div>`
         :emptyState('\ud83d\udc3e','Nenhum pet','Cadastre seu gato ou cachorro.','Adicionar pet',()=>petForm()));
@@ -745,7 +763,21 @@ SCREENS.profile = async m => {
     <label class="field"><label>Nome de exibi\u00e7\u00e3o</label><input id="pname" value="${esc(PROFILE.display_name||'')}"></label>
     <label class="field"><label>Apelido/usu\u00e1rio</label><input id="puser" value="${esc(PROFILE.username||'')}"></label>
     <label class="field"><label>Foto de perfil</label><input id="pavatar" type="file" accept="image/*"></label>
+    <div class="field"><label>Ou escolha um mascote como foto</label>
+      <div class="mascot-pick">
+        <button type="button" class="mascot-opt${PROFILE.avatar_url==='mascot:cachorro'?' sel':''}" data-mascot="cachorro">${MASCOTS.cachorro}<small>Cachorro</small></button>
+        <button type="button" class="mascot-opt${PROFILE.avatar_url==='mascot:gato'?' sel':''}" data-mascot="gato">${MASCOTS.gato}<small>Gato</small></button>
+        <button type="button" class="mascot-opt${PROFILE.avatar_url==='mascot:capivara'?' sel':''}" data-mascot="capivara">${MASCOTS.capivara}<small>Capivara</small></button>
+      </div></div>
     <button class="btn primary" id="savep">Salvar perfil</button></div>
+  <div class="panel"><h3>Aparência</h3>
+    <p class="subtitle">Escolha a cor do app. A mudança é salva neste aparelho.</p>
+    <div class="theme-pick">
+      <button type="button" class="theme-opt${currentTheme()==='roxo'?' sel':''}" data-theme="roxo"><span style="background:#7c3aed"></span>Roxo</button>
+      <button type="button" class="theme-opt${currentTheme()==='rosa'?' sel':''}" data-theme="rosa"><span style="background:#ec4899"></span>Rosa</button>
+      <button type="button" class="theme-opt${currentTheme()==='azul'?' sel':''}" data-theme="azul"><span style="background:#3b82f6"></span>Azul</button>
+      <button type="button" class="theme-opt${currentTheme()==='cinza'?' sel':''}" data-theme="cinza"><span style="background:#4b5563"></span>Cinza</button>
+    </div></div>
   <div class="panel"><h3>Nossa casa</h3>
     <label class="field"><label>Nome do espa\u00e7o</label><input id="hname" value="${esc(HOUSE.name||'')}"></label>
     <button class="btn" id="saveh">Salvar nome</button>
@@ -757,8 +789,12 @@ SCREENS.profile = async m => {
   </div>
   ${!DB.hasSupabase?'<div class="banner warn">Para convites e sincroniza\u00e7\u00e3o reais entre celulares, configure o Supabase (veja o README).</div>':''}`;
   wireHead();
+  let pickedMascot=null;
+  m.querySelectorAll('.mascot-opt').forEach(b=>b.onclick=()=>{ pickedMascot=b.dataset.mascot; m.querySelectorAll('.mascot-opt').forEach(x=>x.classList.remove('sel')); b.classList.add('sel'); });
+  m.querySelectorAll('.theme-opt').forEach(b=>b.onclick=()=>{ applyTheme(b.dataset.theme); toast('Cor do app alterada.'); go('profile'); });
   $('#savep').onclick=async()=>{ const patch={display_name:$('#pname').value,username:$('#puser').value};
     const f=$('#pavatar').files[0]; if(f){try{patch.avatar_url=await DB.upload(f);}catch(e){}}
+    else if(pickedMascot){ patch.avatar_url='mascot:'+pickedMascot; }
     await DB.saveProfile(patch); PROFILE={...PROFILE,...patch}; MEMBERS[UID]={...MEMBERS[UID],...patch}; toast('Perfil salvo.'); renderShell(); go('profile'); };
   $('#saveh').onclick=async()=>{ try{ await DB.update('households',HOUSE.id,{name:$('#hname').value}); }catch(e){} HOUSE.name=$('#hname').value; toast('Nome da casa salvo.'); renderShell(); go('profile'); };
   $('#inv').onclick=async()=>{ try{ const code=await DB.createInvite(); $('#invout').innerHTML=`<div class="banner ok">C\u00f3digo: <b>${esc(code)}</b> \u2014 v\u00e1lido por 7 dias.</div>`; }catch(e){ toast(e.message,'err'); } };
@@ -785,4 +821,3 @@ async function boot(){
 // Service worker (atualiza\u00e7\u00e3o sem travar ao voltar)
 if('serviceWorker' in navigator){ window.addEventListener('load',()=>{ navigator.serviceWorker.register('sw.js').catch(()=>{}); }); }
 boot();
-
