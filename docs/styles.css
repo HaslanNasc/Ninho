@@ -1,3 +1,48 @@
+:root{
+--bg:#f4f2fb;--cream:#ffffff;--cream2:#f2eefb;--brown:#1f2433;--brown2:#4b4270;
+--tan:#c7bdf0;--line:#e9e5f5;--muted:#6b7280;--pink:#ec4899;--green:#10b981;
+--red:#ef4444;--amber:#f59e0b;--blue:#4f46e5;--brownc:#8b5e3c;
+--primary:#7c3aed;--primary2:#9333ea;--tint:#efeafe;--ring:rgba(124,58,237,.18);--heroink:#eadcff;--shadow:0 10px 30px rgba(80,50,160,.10)}
+html[data-theme="roxo"]{--primary:#7c3aed;--primary2:#9333ea;--tint:#efeafe;--ring:rgba(124,58,237,.18);--heroink:#eadcff}
+html[data-theme="rosa"]{--primary:#ec4899;--primary2:#db2777;--tint:#fdeef6;--ring:rgba(236,72,153,.18);--heroink:#ffe3f1}
+html[data-theme="azul"]{--primary:#3b82f6;--primary2:#2563eb;--tint:#e8f0fe;--ring:rgba(59,130,246,.18);--heroink:#dbe8ff}
+html[data-theme="cinza"]{--primary:#4b5563;--primary2:#374151;--tint:#eef0f3;--ring:rgba(75,85,99,.18);--heroink:#dfe3e8}
+*{box-sizing:border-box}
+html,body{margin:0;padding:0}
+body{background:var(--bg);color:var(--brown);font:15px/1.45 system-ui,-apple-system,"Segoe UI",Roboto,sans-serif;-webkit-tap-highlight-color:transparent}
+button,input,select,textarea{font:inherit;color:inherit}
+button{cursor:pointer}
+.hidden{display:none!important}
+a{color:var(--primary)}
+
+/* ---------- Auth screen ---------- */
+.auth-wrap{min-height:100dvh;display:grid;place-items:center;padding:20px;background:linear-gradient(160deg,var(--tint),#fce7f3)}
+.auth-card{background:var(--cream);border:1px solid var(--line);border-radius:22px;box-shadow:var(--shadow);width:100%;max-width:400px;padding:26px 24px}
+.auth-card h1{margin:4px 0 2px;font-size:26px;color:var(--primary)}
+.auth-card .sub{color:var(--muted);margin:0 0 18px}
+.auth-mascots{font-size:34px;text-align:center;margin-bottom:6px}
+.field{display:block;margin:12px 0}
+.field label{display:block;font-size:12px;color:var(--muted);margin-bottom:5px;letter-spacing:.3px}
+.field input,.field select,.field textarea{width:100%;border:1px solid var(--line);background:#fff;border-radius:12px;padding:12px 13px;outline:none}
+.field input:focus,.field textarea:focus,.field select:focus{border-color:var(--primary);box-shadow:0 0 0 3px var(--ring)}
+.auth-switch{text-align:center;margin-top:14px;color:var(--muted);font-size:13px}
+.auth-switch b{color:var(--primary);cursor:pointer}
+.banner{border-radius:12px;padding:10px 12px;margin:10px 0;font-size:13px}
+.banner.warn{background:#fef3c7;border:1px solid #f3d27a;color:#8a5a08}
+.banner.err{background:#fde2e1;border:1px solid #f4b4ae;color:#99261d}
+.banner.ok{background:#d6f5e6;border:1px solid #9fe0c2;color:#0a7047}
+
+/* ---------- App shell ---------- */
+.shell{min-height:100dvh;display:grid;grid-template-columns:250px minmax(0,1fr)}
+aside{background:#ffffff;color:var(--brown);padding:20px 14px;display:flex;flex-direction:column;gap:18px;position:sticky;top:0;height:100dvh;overflow:auto;border-right:1px solid var(--line)}
+.brand{display:flex;align-items:center;gap:11px;padding:4px 6px}
+.brand-mark{font-size:28px}
+.brand b{font-size:18px;display:block;line-height:1;color:var(--primary)}
+.brand small{color:var(--muted);font-size:11px}
+.user-chip{border:1px solid var(--line);background:var(--cream2);padding:11px;border-radius:15px;display:flex;gap:10px;align-items:center}
+.avatar{width:40px;height:40px;border-radius:50%;display:grid;place-items:center;background:var(--tint);color:var(--primary);font-weight:800;flex-shrink:0;object-fit:cover;overflow:hidden}
+.avatar img{width:100%;height:100%;object-fit:cover}
+.user-chip .nm{font-weight:700;font-size:14px}
 .user-chip .hh{color:var(--muted);font-size:11px}
 .navlabel{font-size:10px;letter-spacing:1.5px;color:#a9a2c4;padding:0 10px;margin:6px 0 2px;text-transform:uppercase}
 .nav{display:grid;gap:4px}
@@ -121,3 +166,4 @@ main{padding-bottom:84px}
 .theme-opt{display:flex;align-items:center;gap:8px;padding:9px 14px;border:2px solid var(--line);border-radius:14px;background:var(--cream);cursor:pointer;font-weight:700;color:var(--brown)}
 .theme-opt span{width:20px;height:20px;border-radius:50%;display:inline-block;box-shadow:0 1px 3px rgba(0,0,0,.2)}
 .theme-opt.sel{border-color:var(--primary);background:var(--tint);color:var(--primary)}
+
