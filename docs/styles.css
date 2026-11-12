@@ -1,7 +1,7 @@
   .sc-amount{font-size:17px}
   .toolbar{flex-wrap:wrap}
   .searchbox{flex:1 1 100%}
-}
+
 
 /* ---------- mascotes (cachorro, gato, capivara) ---------- */
 .mascot{display:inline-flex;width:56px;height:56px;vertical-align:middle;line-height:0}
