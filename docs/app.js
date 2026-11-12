@@ -191,6 +191,52 @@ function byField(name,label){ return {name,label}; }
 function sharedField(def){ return {name:'shared',type:'checkbox',cklabel:'Compartilhar com a casa',label:'Privacidade',def:!!def}; }
 function authorLine(r){ const who=memberName(r.created_by||r.owner_id); const upd=r.updated_by&&r.updated_by!==r.created_by?` \u00b7 atualizado por ${esc(memberName(r.updated_by))}`:''; return `<span class="mt">por ${esc(who)}${upd}</span>`; }
 
+
+// ---------- BARRA FIXA DO TOPO: Meu / Todos / Pesquisa ----------
+const LIST_SCOPE = {debts:'todos', purchases:'todos', accounts:'todos', goals:'todos', inventory:'todos', calendar:'todos', pets:'todos', reform:'todos'};
+const searchState = {};
+
+function scoped(rows, mod){ const sc = LIST_SCOPE[mod]||'todos';
+  if(sc!=='meu') return rows;
+  return rows.filter(r=>{ if(!r) return false;
+    if(r.shared===false) return (r.created_by||r.owner_id||r.payer_id)===UID;
+    return (r.created_by||r.owner_id||r.payer_id)===UID; }); }
+
+function toolbar(mod, ph){
+  const sc = LIST_SCOPE[mod]||'todos'; const q = searchState[mod]||'';
+  return `<div class="toolbar" id="tb-${mod}">
+    <div class="seg">
+      <button class="seg-b${sc==='meu'?' act':''}" data-scope="meu">Meu</button>
+      <button class="seg-b${sc==='todos'?' act':''}" data-scope="todos">Todos</button>
+    </div>
+    <div class="searchbox"><span class="sico">\ud83d\udd0e</span>
+      <input id="q-${mod}" type="search" placeholder="${esc(ph||'Pesquisar\u2026')}" value="${esc(q)}" autocomplete="off">
+    </div></div>`; }
+
+// liga a barra: busca em tempo real + troca Meu/Todos
+function wireToolbar(mod, m, opts){
+  opts = opts || {};
+  const tb = document.getElementById('tb-'+mod); if(!tb) return;
+  const q = document.getElementById('q-'+mod);
+  const applySearch = ()=>{
+    const v = (searchState[mod]||'').trim().toLowerCase();
+    const items = m.querySelectorAll(opts.itemSel||'.item, .s-card');
+    let shown = 0;
+    items.forEach(it=>{ const hay = (it.dataset.hay||it.dataset.nm||it.textContent||'').toLowerCase();
+      const ok = !v || hay.includes(v); it.style.display = ok?'':'none'; if(ok) shown++; });
+    const none = document.getElementById('nores-'+mod);
+    if(none) none.style.display = (v && shown===0)?'':'none';
+  };
+  if(q){ q.value = searchState[mod]||''; applySearch();
+    let t=null;
+    q.addEventListener('input',()=>{ searchState[mod]=q.value; clearTimeout(t); t=setTimeout(()=>{ applySearch(); },120); }); }
+  tb.querySelectorAll('[data-scope]').forEach(b=>b.addEventListener('click',()=>{
+    LIST_SCOPE[mod]=b.dataset.scope; if(opts.onScope) opts.onScope(b.dataset.scope); }));
+}
+
+function noResults(mod){
+  return `<div class="panel empty" id="nores-${mod}" style="display:none"><div class="em">\ud83d\udd0d</div><h4>Nada encontrado</h4><p>Tente outro nome ou limpe a busca.</p></div>`; }
+
 // ============================================================
 // TELAS
 // ============================================================
@@ -332,18 +378,29 @@ function debtReceipt(d,allPays){
 }
 SCREENS.debts = async m => {
   const [debts,pays]=await Promise.all([getAll('debts'),getAll('payments')]);
-  const rows=debts.map(d=>({...d,st:debtStatus(d)}));
+  let rows=scoped(debts.map(d=>({...d,st:debtStatus(d)})),'debts');
   const stChip={paga:'ok',parcial:'pend',pendente:'',vencida:'late'};
+  const totRest=rows.reduce((a,d)=>a+Math.max(0,Number(d.total_cents)-Number(d.paid_cents)),0);
   m.innerHTML=head('D\u00edvidas e pagamentos','Registre d\u00edvidas e pagamentos parciais.',
     `<button class="btn primary" id="add">+ Nova d\u00edvida</button>`)+
+    toolbar('debts','Pesquisar d\u00edvida, credor\u2026')+
     (rows.length?`<div class="list">`+rows.map(d=>{ const rest=Number(d.total_cents)-Number(d.paid_cents); const pc=Math.min(100,Math.round(Number(d.paid_cents)/Math.max(1,Number(d.total_cents))*100));
-      return `<div class="item"><div class="mn"><div class="nm">${esc(d.description)} <span class="chip ${stChip[d.st]||''}">${d.st}</span> ${privChip(d)}</div>
-      <div class="mt">${esc(d.creditor||'')}${d.due_date?' \u00b7 vence '+fmtDate(d.due_date):''} \u00b7 pago ${cents(d.paid_cents)} de ${cents(d.total_cents)}</div>
-      <div class="progress"><i style="width:${pc}%"></i></div>${authorLine(d)}</div>
-      <div class="rt"><span class="amount ${rest>0?'neg':'pos'}">${cents(rest)}</span>
-      <div class="rowbtns">${d.st!=='paga'?`<button class="btn small green" data-pay="${d.id}">Pagar</button>`:''}<button class="btn small pale" data-r="${d.id}">Recibo</button><button class="btn small" data-ed="${d.id}">Editar</button><button class="btn small red" data-del="${d.id}">Excluir</button></div></div></div>`;}).join('')+`</div>`
+      const late=(d.due_date&&daysTo(d.due_date)<0&&d.st!=='paga');
+      return `<div class="s-card"><div class="sc-top">
+        <div class="sc-title">${esc(d.description)}</div>
+        <div class="sc-amount ${rest>0?'neg':'pos'}">${cents(rest)}</div></div>
+        <div class="sc-tags"><span class="chip ${stChip[d.st]||''}">${d.st}</span>${privChip(d)}${d.creditor?`<span class="chip">${esc(d.creditor)}</span>`:''}</div>
+        <div class="sc-bar"><div class="sc-bar-l"><span>Pago ${cents(d.paid_cents)} de ${cents(d.total_cents)}</span><span>${pc}%</span></div><div class="progress"><i style="width:${pc}%"></i></div></div>
+        <div class="sc-meta">
+          <div><span class="mk">Vencimento</span><span class="mv ${late?'late':''}">${d.due_date?fmtDate(d.due_date):'\u2014'}</span></div>
+          <div><span class="mk">Restante</span><span class="mv ${rest>0?'neg':'pos'}">${cents(rest)}</span></div>
+          <div><span class="mk">Criado por</span><span class="mv">${esc(memberName(d.created_by||d.owner_id))}</span></div>
+        </div>
+        <div class="sc-actions">${d.st!=='paga'?`<button class="btn small green" data-pay="${d.id}">Pagar</button>`:''}<button class="btn small pale" data-r="${d.id}">Recibo</button><button class="btn small" data-ed="${d.id}">Editar</button><button class="btn small red" data-del="${d.id}">Excluir</button></div>
+      </div>`;}).join('')+`</div>`+noResults('debts')
       :emptyState('\ud83e\uddfe','Nenhuma d\u00edvida','\u00d3timo! Ou adicione uma para controlar.','Adicionar primeira d\u00edvida',()=>debtForm()));
   wireHead(); const ab=$('#add'); if(ab) ab.onclick=()=>debtForm();
+  wireToolbar('debts',m,{onScope:()=>go('debts')});
   m.querySelectorAll('[data-pay]').forEach(b=>b.onclick=()=>payDebt(debts.find(d=>d.id===b.dataset.pay)));
   m.querySelectorAll('[data-r]').forEach(b=>b.onclick=()=>debtReceipt(debts.find(d=>d.id===b.dataset.r),pays));
   m.querySelectorAll('[data-ed]').forEach(b=>b.onclick=()=>debtForm(debts.find(d=>d.id===b.dataset.ed)));
@@ -493,15 +550,28 @@ function purReceipt(p){ const paid=p.paid_installments*p.installment_cents; cons
   $('#rshare').onclick=async()=>{ try{ const c=await makePng(); if(c&&navigator.canShare){ c.toBlob(async blob=>{ const file=new File([blob],'recibo.png',{type:'image/png'}); if(navigator.canShare({files:[file]})) await navigator.share({files:[file],text:txt}); else await navigator.share({text:txt}); }); } else if(navigator.share){ await navigator.share({text:txt}); } else { navigator.clipboard.writeText(txt); toast('Compartilhamento n\u00e3o suportado; texto copiado.'); } }catch(e){} };
 }
 SCREENS.purchases = async m => {
-  const pur=await getAll('purchases');
+  const pur=scoped(await getAll('purchases'),'purchases');
   m.innerHTML=head('Compras e recibos','Planeje compras, parcelas e gere recibos em PNG.',
     `<button class="btn primary" id="add">+ Nova compra</button>`)+
-    (pur.length?`<div class="list">`+pur.map(p=>{const paid=p.paid_installments*p.installment_cents;const rest=Number(p.total_cents)-paid;
-      return `<div class="item"><div class="mn"><div class="nm">${esc(p.product)} ${privChip(p)}</div>
-      <div class="mt">${esc(p.store||'')} \u00b7 ${esc(p.method||'')} \u00b7 ${p.paid_installments}/${p.installments} parcelas \u00b7 falta ${cents(rest)}</div>${authorLine(p)}</div>
-      <div class="rt"><span class="amount">${cents(p.total_cents)}</span><div class="rowbtns"><button class="btn small pale" data-r="${p.id}">Recibo</button><button class="btn small" data-ed="${p.id}">Editar</button><button class="btn small red" data-del="${p.id}">Excluir</button></div></div></div>`;}).join('')+`</div>`
+    toolbar('purchases','Pesquisar produto, loja\u2026')+
+    (pur.length?`<div class="list">`+pur.map(p=>{const tot=Number(p.total_cents); const paid=Number(p.paid_installments)*Number(p.installment_cents||0); const rest=Math.max(0,tot-paid);
+      const pc=Math.min(100,Math.round(paid/Math.max(1,tot)*100));
+      return `<div class="s-card"><div class="sc-top">
+        <div class="sc-title">${esc(p.product)}</div>
+        <div class="sc-amount">${cents(tot)}</div></div>
+        <div class="sc-tags">${privChip(p)}${p.store?`<span class="chip">${esc(p.store)}</span>`:''}${p.method?`<span class="chip">${esc(p.method)}</span>`:''}</div>
+        <div class="sc-bar"><div class="sc-bar-l"><span>Parcelas ${p.paid_installments||0} de ${p.installments||1}</span><span>Pago ${cents(paid)}</span></div><div class="progress"><i style="width:${pc}%"></i></div></div>
+        <div class="sc-meta">
+          <div><span class="mk">Parcelas</span><span class="mv">${p.paid_installments||0}/${p.installments||1}</span></div>
+          <div><span class="mk">Pago</span><span class="mv pos">${cents(paid)}</span></div>
+          <div><span class="mk">Falta</span><span class="mv ${rest>0?'neg':'pos'}">${cents(rest)}</span></div>
+        </div>
+        <div class="sc-foot">por ${esc(memberName(p.created_by||p.owner_id))}${p.purchase_date?' \u00b7 '+fmtDate(p.purchase_date):''}</div>
+        <div class="sc-actions"><button class="btn small pale" data-r="${p.id}">Recibo</button><button class="btn small" data-ed="${p.id}">Editar</button><button class="btn small red" data-del="${p.id}">Excluir</button></div>
+      </div>`;}).join('')+`</div>`+noResults('purchases')
       :emptyState('\ud83d\udecd\ufe0f','Nenhuma compra','Registre compras \u00e0 vista ou parceladas.','Adicionar compra',()=>purForm()));
   wireHead(); const ab=$('#add'); if(ab) ab.onclick=()=>purForm();
+  wireToolbar('purchases',m,{onScope:()=>go('purchases')});
   m.querySelectorAll('[data-r]').forEach(b=>b.onclick=()=>purReceipt(pur.find(p=>p.id===b.dataset.r)));
   m.querySelectorAll('[data-ed]').forEach(b=>b.onclick=()=>purForm(pur.find(p=>p.id===b.dataset.ed)));
   m.querySelectorAll('[data-del]').forEach(b=>b.onclick=()=>confirmBox('Excluir esta compra?',async()=>{await DB.remove('purchases',b.dataset.del);go('purchases');}));
